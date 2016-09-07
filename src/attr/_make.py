@@ -594,40 +594,63 @@ class Attribute(object):
 
     Plus *all* arguments of :func:`attr.ib`.
     """
-    __slots__ = ('name', 'default', 'validator', 'repr', 'cmp', 'hash', 'init',
-                 'convert')
+    # Don't actually use slots, as it doesn't work well with Pickle.  Having a
+    # tuple prevents modifying attributes one by one, but one could always
+    # modify _values.
+    __slots__ = ('_values', )
+    _fields = ('name', 'default', 'validator', 'repr', 'cmp', 'hash', 'init', 'convert')
 
     _optional = {"convert": None}
 
     def __init__(self, name, default, validator, repr, cmp, hash, init,
                  convert=None):
         # Cache this descriptor here to speed things up later.
-        __bound_setattr = _obj_setattr.__get__(self, Attribute)
+        self._values = (name, default, validator, repr, cmp, hash, init, convert)
 
-        __bound_setattr('name', name)
-        __bound_setattr('default', default)
-        __bound_setattr('validator', validator)
-        __bound_setattr('repr', repr)
-        __bound_setattr('cmp', cmp)
-        __bound_setattr('hash', hash)
-        __bound_setattr('init', init)
-        __bound_setattr('convert', convert)
+    @property
+    def name(self):
+        return self._values[0]
 
-    def __setattr__(self, name, value):
-        raise FrozenInstanceError()
+    @property
+    def default(self):
+        return self._values[1]
+
+    @property
+    def validator(self):
+        return self._values[2]
+
+    @property
+    def repr(self):
+        return self._values[3]
+
+    @property
+    def cmp(self):
+        return self._values[4]
+
+    @property
+    def hash(self):
+        return self._values[5]
+
+    @property
+    def init(self):
+        return self._values[6]
+
+    @property
+    def convert(self):
+        return self._values[7]
 
     @classmethod
     def from_counting_attr(cls, name, ca):
         return cls(name=name,
                    **dict((k, getattr(ca, k))
                           for k
-                          in Attribute.__slots__
+                          in Attribute._fields
                           if k != "name"))
 
 
 _a = [Attribute(name=name, default=NOTHING, validator=None,
                 repr=True, cmp=True, hash=True, init=True)
-      for name in Attribute.__slots__]
+      for name in Attribute._fields]
 Attribute = _add_hash(
     _add_cmp(_add_repr(Attribute, attrs=_a), attrs=_a), attrs=_a
 )
